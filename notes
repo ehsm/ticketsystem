@@ -1,0 +1,21 @@
+-= EHSM Ticket-System =-
+
+Features needed:
+	- create new ticket:
+		- create printable ticket (LaTeX) with:
+			barcode
+			name
+			logo
+			conference dates and map on the back
+		- add randomly generated barcode and name to database
+	- validate a scanned barcode:
+		- read barcode
+		- query server with barcode
+		- receive answer and give feedback
+
+Concept:
+	- client software interacts with barcode reader and asks server
+	- server receives client requests and interacts with database
+
+Constraints:
+	- secure connection -> SSL
