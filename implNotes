@@ -1,0 +1,27 @@
+-= Notes for the implementation =-
+
+	* Possible Scenarios *
+
+	1) Create a new ticket
+		a) call server script with create command with the persons data (name, etc.)
+		b) script checks database for name
+			exists		→ error? (l. notes:Questions)
+			exists not	→ proceed
+				• create random barcode
+				• check database for barcode
+					exists		→ create new one, go back
+					exists not	→ proceed
+						• insert name with barcode
+						• create LaTeX-Ticket with barcode, name, logo, etc.
+						• return pdf-file
+		c) scipt exits
+		d) pdf-ticket is delivered per mail
+
+	2) Check the validation of a ticket
+		a) Visitor shows his ticket printout
+		b) code is scanned
+		c) client scripts requests information about code from server (HTTPS)
+		d) server answers:
+			• ticket is valid, not used (return Owners Name)
+			• ticket is valid, used (return Owners Name)
+			• ticket is not valid
