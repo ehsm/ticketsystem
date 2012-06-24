@@ -26,21 +26,23 @@ def createPrintTicket(qrFile):
 
 def randHashString():
 	randData = os.urandom(128)
-	return hashlib.md5(randData).hexdigest()[:15]
+	randString = hashlib.md5(randData).hexdigest()[:15]
+	return randString
 	
 def commandCreate(args):
 	if(len(args.name) > 255):
 		print "Please choose a name that fits into 255 characters"
 		quit()
 	else:
-		randString = randHashString
+		randString = randHashString()
 #		userCode = qrtools.QR(data=randString)
 #		userCode.encode(filename="tmp/test2.png")
 #		createPrintTicket(userCode.filename)
 		dbConn = mysqlConnect()
 		dbCursor = dbConn.cursor()
-		print args.name
-		dbCursor.execute("INSERT INTO tickets SET name=%s, code=%s;", [args.name, randString])
+		nameParts = args.name.split('=')
+		name = nameParts[len(nameParts)-1]
+		dbCursor.execute("INSERT INTO tickets SET name=%s, code=%s;", [name, randString])
 		dbCursor.close()
 		dbConn.commit()
 		dbConn.close()
