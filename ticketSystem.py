@@ -15,14 +15,9 @@ def mysqlConnect():
 							passwd="exceptional",
 							db="ehsmTickets")
 	return conn
-	"""cursor.execute("SELECT * FROM tickets;")
-	row = cursor.fetchall()
-	print row[0]
-	cursor.close()
-	quit()"""
 
 def createPrintTicket(qrFile):
-	return True
+	return True	
 
 def randHashString():
 	randData = os.urandom(128)
@@ -34,14 +29,15 @@ def commandCreate(args):
 		print "Please choose a name that fits into 255 characters"
 		quit()
 	else:
-		randString = randHashString()
-#		userCode = qrtools.QR(data=randString)
-#		userCode.encode(filename="tmp/test2.png")
-#		createPrintTicket(userCode.filename)
-		dbConn = mysqlConnect()
-		dbCursor = dbConn.cursor()
 		nameParts = args.name.split('=')
 		name = nameParts[len(nameParts)-1]
+		randString = randHashString()
+		userCode = qrtools.QR(data=randString)
+		fname = "tmp/"+randString+".png"
+		userCode.encode(filename=fname)
+		createPrintTicket(userCode.filename)
+		dbConn = mysqlConnect()
+		dbCursor = dbConn.cursor()
 		dbCursor.execute("INSERT INTO tickets SET name=%s, code=%s;", [name, randString])
 		dbCursor.close()
 		dbConn.commit()
