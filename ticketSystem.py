@@ -7,16 +7,23 @@ import argparse		# parse commandline arguments and print help texts
 import qrtools		# encode and decode QR-Codes
 import os			# access urandom for "good" random numbers
 import hashlib		# provides hash functions
+import ConfigParser	# parse config files to set database settings
 
-def mysqlConnect():
-	"""TODO: Use ConfigParser for configuring the mysql server and user settings"""
-	conn = MySQLdb.connect(	host="localhost",
-							user="ehsm",
-							passwd="exceptional",
-							db="ehsmTickets")
+CONF_FILE = "dbAuth.conf"
+
+def mysqlConnect(config):
+	hostname = config.get('ticketSystem', 'SERVER_URL')
+	username = config.get('ticketSystem', 'SERVER_USER')
+	userpw = config.get('ticketSystem', 'SERVER_PASSWORD')
+	database = config.get('ticketSystem', 'SERVER_DATABASE')
+	conn = MySQLdb.connect(	host=hostname,
+							user=username,
+							passwd=userpw,
+							db=database)
 	return conn
 
-def createPrintTicket(qrFile):
+"""TODO: create tickets with LaTeX per python"""
+def createPrintTicket(qrCode):
 	return True	
 
 def randHashString():
@@ -24,7 +31,7 @@ def randHashString():
 	randString = hashlib.md5(randData).hexdigest()[:15]
 	return randString
 	
-def commandCreate(args):
+def commandCreate(args, config):
 	nameParts = args.name.split('=')
 	name = nameParts[len(nameParts)-1]
 	if(len(name) > 255):
@@ -36,17 +43,17 @@ def commandCreate(args):
 		fname = "tmp/"+randString+".png"
 		userCode.encode(filename=fname)
 		createPrintTicket(userCode.filename)
-		dbConn = mysqlConnect()
+		dbConn = mysqlConnect(config)
 		dbCursor = dbConn.cursor()
 		dbCursor.execute("INSERT INTO tickets SET name=%s, code=%s;", [name, randString])
 		dbCursor.close()
 		dbConn.commit()
 		dbConn.close()
 
-def commandCheck(args):
+def commandCheck(args, config):
 	code = qrtools.QR()
 	code.decode_webcam()
-	dbConn = mysqlConnect()
+	dbConn = mysqlConnect(config)
 	dbCursor = dbConn.cursor()
 #	code.data="9640f4432618567"
 	dbCursor.execute("SELECT name FROM tickets WHERE code=%s;", [code.data])
@@ -60,6 +67,11 @@ def commandCheck(args):
 		print "Ticket is registered on "+name
 	dbCursor.close()
 	dbConn.close()
+
+def parseConfig(confFile):
+	config = ConfigParser.SafeConfigParser()
+	config.read(confFile)
+	return config
 
 def createParser():
 	parser = argparse.ArgumentParser()
@@ -77,6 +89,6 @@ if __name__ == "__main__":
 	parser = createParser()
 	args = parser.parse_args()
 	"""	As mentioned here: http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names
-		there is no way to match any rules on peoples names so i'm stopping trying to find one.
-		if (len(sys.argv) < 3 or not re.match('[a-zA-Z]+$', sys.argv[2]) or len(sys.argv[2]) > 32):"""
-	args.func(args)
+		there is no way to match any rules on peoples names so i'm stopping trying to find one."""
+	config = parseConfig(CONF_FILE)
+	args.func(args, config)		# execute the right function depending on the arguments
