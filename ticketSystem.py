@@ -11,14 +11,14 @@ import os			# access urandom for "good" random numbers
 import hashlib		# provides hash functions
 import ConfigParser	# parse config files to set database settings
 
-CONF_FILE = "dbAuth.conf"
+CONF_FILE = "ticketSystem.conf"
 BASE_DIR = "tmp/"
 
 def mysqlConnect(config):
-	hostname = config.get('ticketSystem', 'SERVER_URL')
-	username = config.get('ticketSystem', 'SERVER_USER')
-	userpw = config.get('ticketSystem', 'SERVER_PASSWORD')
-	database = config.get('ticketSystem', 'SERVER_DATABASE')
+	hostname = config.get('database', 'SERVER_URL')
+	username = config.get('database', 'SERVER_USER')
+	userpw = config.get('database', 'SERVER_PASSWORD')
+	database = config.get('database', 'SERVER_DATABASE')
 	conn = MySQLdb.connect(	host=hostname,
 							user=username,
 							passwd=userpw,
@@ -52,21 +52,26 @@ def createPrintTicket(qrCode, name):
 \end{document}
 """)
 
-def randHashString():
+def randHashString(length):
 	randData = os.urandom(128)
-	randString = hashlib.md5(randData).hexdigest()[:16]
+	randString = hashlib.md5(randData).hexdigest()[:length]
 	return randString
 	
 def commandCreate(args, config):
+	nameLength = config.get('database', 'NAME_LENGTH')
+	codeLength = config.getint('database', 'CODE_LENGTH')
 	nameParts = args.name.split('=')
 	name = nameParts[len(nameParts)-1]
-	if len(name) > 32:
-		print "Please choose a name that fits into 32 characters"
+	print name
+	print str(len(name)) + " | " + str(nameLength)
+	print str(len(name) > nameLength)
+	if (len(name) > nameLength):
+		print "Please choose a name that fits into "+ str(nameLength) +" characters"
 		quit()
 	else:
-		randString = randHashString()
+		randString = randHashString(codeLength)
 		while checkCode(randString, config):
-			randString = randHashString()
+			randString = randHashString(codeLength)
 		fname = "tmp/"+randString+".png"
 		dbConn = mysqlConnect(config)
 		dbCursor = dbConn.cursor()
@@ -140,5 +145,5 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	"""	As mentioned here: http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names
 		there is no way to match any rules on peoples names so i'm stopping trying to find one."""
-	config = parseConfig(CONF_FILE)
+	config = parseConfig(CONF_FILE)	# parse the config file
 	args.func(args, config)		# execute the right function depending on the arguments
