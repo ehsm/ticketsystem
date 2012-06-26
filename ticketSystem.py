@@ -79,9 +79,13 @@ def commandCreate(args, config):
 		dbConn.close()
 
 def commandCheck(args, config):
-	code = qrtools.QR()
-	code.decode_webcam()
-	dbData = checkCode(code.data, config)
+	if not args.code:
+		code = qrtools.QR()
+		code.decode_webcam()
+		data = code.data
+	else:
+		data = args.code
+	dbData = checkCode(data, config)
 	name = dbData[0]
 	used = dbData[1]
 	if not dbData:
@@ -127,6 +131,7 @@ def createParser():
 	parserCreate.set_defaults(func=commandCreate)
 	# create a parser for the check subcommand and add handler function 
 	parserCheck	= subparsers.add_parser('check')
+	parserCheck.add_argument("--code", help="manually give the ticket code to check for")
 	parserCheck.set_defaults(func=commandCheck)
 	return parser
 
