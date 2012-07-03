@@ -29,42 +29,21 @@ def mysqlConnect(config):
 	Thoughts:	Put it into a seperate class?
 				Read the positions of the fields from a config file as well?"""
 def createPrintTicket(qrCode, name):
-	filepath = os.path.join(BASE_DIR, qrCode.data + ".tmp")
-	file = open(filepath, 'w')
-	file.write(r"""
-\documentclass{article}
-
-\usepackage[papersize={9cm,6cm}, margin=0cm]{geometry}
-\usepackage[utf8]{inputenc}
-\usepackage[ngerman]{babel}
-\usepackage{graphicx}
-\usepackage{overpic}
-% use DejaVuSans as default font
-\usepackage{DejaVuSans}
-\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
-\usepackage[T1]{fontenc}
-
-\begin{document}
-	\centering
-	\begin{overpic}[width=9cm]{ticketEntwurf}
-		\put(5,25){\huge{""" + name + """}}	
-	\end{overpic}
-\end{document}
-""")
+	return True
 
 def randHashString(length):
 	randData = os.urandom(128)
 	randString = hashlib.md5(randData).hexdigest()[:length]
 	return randString
 	
+def commandInstall(args, config):
+	configFile = args.config
+
 def commandCreate(args, config):
-	nameLength = config.get('database', 'NAME_LENGTH')
+	nameLength = config.getint('database', 'NAME_LENGTH')
 	codeLength = config.getint('database', 'CODE_LENGTH')
 	nameParts = args.name.split('=')
 	name = nameParts[len(nameParts)-1]
-	print name
-	print str(len(name)) + " | " + str(nameLength)
-	print str(len(name) > nameLength)
 	if (len(name) > nameLength):
 		print "Please choose a name that fits into "+ str(nameLength) +" characters"
 		quit()
@@ -98,7 +77,7 @@ def commandCheck(args, config):
 	elif used:
 		print "Sorry, the ticket registered to " + name + " was already used."
 	else:
-		markAsUsed(code.data, config)
+		markAsUsed(data, config)
 		print "Ticket is registered on " + name
 		print "Ticket was marked as used."
 
@@ -138,6 +117,10 @@ def createParser():
 	parserCheck	= subparsers.add_parser('check')
 	parserCheck.add_argument("--code", help="manually give the ticket code to check for")
 	parserCheck.set_defaults(func=commandCheck)
+	# create a parser for an install routine
+	parserInstall = subparsers.add_parser('install')
+	parserInstall.add_argument('config', help="specifiy the config file to use for setting up the database")
+	parserInstall.set_defaults(func=commandInstall)
 	return parser
 
 if __name__ == "__main__":
