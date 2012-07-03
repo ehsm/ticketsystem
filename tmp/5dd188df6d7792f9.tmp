@@ -1,0 +1,19 @@
+
+\documentclass{article}
+
+\usepackage[papersize={9cm,6cm}, margin=0cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage{graphicx}
+\usepackage{overpic}
+% use DejaVuSans as default font
+\usepackage{DejaVuSans}
+\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
+\usepackage[T1]{fontenc}
+
+\begin{document}
+	\centering
+	\begin{overpic}[width=9cm]{ticketEntwurf}
+		\put(5,25){\huge{Karl Ernst August Theodor Baltasar zu gutenberg}}	
+	\end{overpic}
+\end{document}
