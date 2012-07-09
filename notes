@@ -3,22 +3,24 @@
 Features needed:
 	- create new ticket:
 		- create printable ticket (LaTeX) with:
-			barcode
+			QR code
 			name
 			logo
 			conference dates and map on the back
-		- add randomly generated barcode and name to database
-	- validate a scanned barcode:
-		- read barcode
-		- query server with barcode
+		- add randomly generated QRcode and name to database
+	- validate a scanned code:
+		- read code
+		- query database with code
 		- receive answer and give feedback
+	- install the database setup
+		- create the database, the user and the table
+		- read specs from config file
 
 Concept:
-	- client software interacts with barcode reader and asks server
-	- server receives client requests and interacts with database
+	- no client server just a script that queries the database
 
 Constraints:
-	- secure connection -> SSL
+	- secure connection -> mysql server is within a secure local network
 
 Questions to answer:
 	• Can one person purchase more than one ticket?

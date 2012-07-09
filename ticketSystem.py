@@ -37,7 +37,19 @@ def randHashString(length):
 	return randString
 	
 def commandInstall(args, config):
-	configFile = args.config
+	config = parseConfig(args.config)
+	dbRootPass = readfromcmdline(passwd)
+	hostname = config.get('database', 'SERVER_URL')
+	mysqlConn = MySQLdb.connect(	host=hostname,
+									user="root",
+									passwd=dbRootPass)
+	dbName = config.get('database', 'SERVER_DATABASE')
+	mysqlConn.execute('CREATE DATABASE %s ;', dbName)
+	mysqlConn.execute('CREATE TABLE ticets ;')
+	dbUser = config.get('datbase', 'SERVER_USER')
+	mysqlConn.execute('CREATE USER  %s ;', sbUser)
+	mysqlConn.execute('GRANT PRIVILEGES TO %s ;', dbUser)
+
 
 def commandCreate(args, config):
 	nameLength = config.getint('database', 'NAME_LENGTH')
