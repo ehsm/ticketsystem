@@ -20,6 +20,17 @@ class Database():
     NAME_LENGTH=32
     CODE_LENGTH=12
 
+class Mail():
+    TEMPLATE=u"""Hello %s,
+
+we finally got your ticket ready.
+here it is.
+
+We are looking forward to see you.
+Your
+ EHSM Team
+"""
+
 class TicketPage():
     OUTPUT_DIR="Ticket/"
     TEMPLATE=u"""

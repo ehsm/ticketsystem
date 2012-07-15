@@ -10,6 +10,10 @@ import argparse        # parse commandline arguments and print help texts
 import os            # access urandom for "good" random numbers
 import hashlib        # provides hash functions
 import logging
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from smtplib import SMTP
 import StringIO
 import ho.pisa as pisa
 import csv
@@ -18,6 +22,14 @@ import barcode
 
 import ticketSettings as config
 
+class CSVRow():
+    def __init__(self, row):
+        self.code = row[0]
+        self.name = row[1]
+        self.email = row[2]
+        self.ticketName = row[3]
+        self.ticketPrice = row[4]
+
 def mysqlConnect():
     conn = MySQLdb.connect(    host=config.Database.SERVER_URL,
                             user=config.Database.SERVER_USER,
@@ -25,31 +37,31 @@ def mysqlConnect():
                             db=config.Database.SERVER_DATABASE)
     return conn
 
-def createPrintTicket(config, code, name, ticketName, ticketPrice):
+def createPrintTicket(d):
     canvas = Image.open(config.Ticket.TEMPLATE_FILE)
 
     #Generate Barcode
     code39 = barcode.get_barcode_class('code39')
-    barcodeImage = code39(code, writer=barcode.writer.ImageWriter())
-    barcodeImage = barcodeImage.render({'dpi':140, 'text':code,'module_height':10})
+    barcodeImage = code39(d.code, writer=barcode.writer.ImageWriter())
+    barcodeImage = barcodeImage.render({'dpi':140, 'text':d.code,'module_height':10})
 
     #Insert Barcode
     canvas.paste(barcodeImage, config.Ticket.BARCODE_POS)
     drawCanvas = ImageDraw.Draw(canvas)
     x,y = config.Ticket.BARCODE_POS
     font = ImageFont.truetype(config.Ticket.FONT,10)
-    drawCanvas.text((x +180 ,y-10), code, (0,0,0),font=font)
+    drawCanvas.text((x +180 ,y-10), d.code, (0,0,0),font=font)
 
     #Render Ticket Name & Price
-    ticketName = ticketName.decode('utf8')
-    ticketPrice = ticketPrice.replace("&euro;","€").decode('utf8')
+    ticketName = d.ticketName.decode('utf8')
+    ticketPrice = d.ticketPrice.replace("&euro;","€").decode('utf8')
     font = ImageFont.truetype(config.Ticket.FONT, config.Ticket.FONT_SIZE)
     drawCanvas.text(config.Ticket.TICKET_NAME_POS, ticketName, (0,0,0), font=font)
     drawCanvas.text(config.Ticket.PRICE_POS, ticketPrice, (0,0,0), font=font)
 
     #Render Name
     font = ImageFont.truetype(config.Ticket.FONT,20)
-    name = name.decode('utf8')
+    name = d.name.decode('utf8')
     while True:
         (w, h) = drawCanvas.textsize(name,font=font)
         if w < config.Ticket.NAME_MAX_LENGTH:
@@ -59,7 +71,7 @@ def createPrintTicket(config, code, name, ticketName, ticketPrice):
     drawCanvas.text(config.Ticket.NAME_POS, name, (0,0,0), font=font)
 
     ticketImagePath = "%s/%s.%s" % (config.Ticket.OUTPUT_DIR,
-                                    code,
+                                    d.code,
                                     config.Ticket.OUTPUT_FORMAT)
 
     try:
@@ -72,9 +84,9 @@ def createPrintTicket(config, code, name, ticketName, ticketPrice):
     except:
         print "Cannot save ticket image to %s" % (ticketImagePath,)
 
-    pageTicketPath = "%s/%s.pdf" % (config.TicketPage.OUTPUT_DIR, code)
+    pageTicketPath = "%s/%s.pdf" % (config.TicketPage.OUTPUT_DIR, d.code)
     htmlTemplate = config.TicketPage.TEMPLATE % { 'name' : name,
-                                                  'code' : code,
+                                                  'code' : d.code,
                                                   'ticket' : ticketImagePath,
                                                   'price' : ticketPrice,
                                                   'desc' : ticketName }
@@ -87,6 +99,34 @@ def createPrintTicket(config, code, name, ticketName, ticketPrice):
                        open(pageTicketPath,'wb'))
     except:
        print "Cannot write PDF ticket to %s" % (pageTicketPath,)
+
+def sendMails(args):
+    csv = readCSV(args.file)
+    for row in csv:
+        d = CSVRow(row)
+        msg = MIMEMultipart()
+        msg['Subject'] = 'Your EHSM Ticket'
+        msg['From'] = 'orga@ehsm.eu'
+        msg['Reply-to'] = 'tickets@ehsm.eu'
+        msg['To'] = d.email
+
+        msg.preamble = 'This is a multi-part message in MIME format.\n'
+
+        part = MIMEText(config.Mail.TEMPLATE % (d.name.decode('utf8')),'plain','utf8')
+        msg.attach(part)
+
+        ticketPath = "%s/%s.pdf" % (config.TicketPage.OUTPUT_DIR, d.code)
+        try:
+            ticket = open(ticketPath,'rb').read()
+        except:
+            print "Cannot read ticket file %s" % (ticketPath,)
+        part = MIMEApplication(ticket)
+        part.add_header('Content-Disposition',
+                        'attachment',
+                        filename="%s.pdf" % (d.code,))
+        msg.attach(part)
+
+        print msg.as_string()
 
 """
 Printer class to print piso errors to the console.
@@ -121,9 +161,8 @@ def createTicketFromCSV(args):
     if not args.file:
         sys.exit(0)
     csv = readCSV(args.file)
-    for entry in csv:
-        code, name, email, ticketName, ticketPrice= entry
-        createPrintTicket(config, code, name, ticketName, ticketPrice)
+    for row in csv:
+        createPrintTicket(CSVRow(row))
 
 def randHashString(length):
     randData = os.urandom(128)
@@ -204,6 +243,10 @@ def checkCode(code):
 def createParser():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
+    #Send mails with tickets
+    parserSendMails = subparsers.add_parser('sendMails')
+    parserSendMails.add_argument('-i', dest='file', type=str, help='csv file')
+    parserSendMails.set_defaults(func=sendMails)
     #Create tickets from csv
     parserCreateCSV = subparsers.add_parser('createCSV')
     parserCreateCSV.add_argument('-i', dest='file', type=str, help='csv file')
