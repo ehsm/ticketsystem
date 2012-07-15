@@ -1,0 +1,186 @@
+@font-face {
+    font-family: ehsm;
+    src: url(data/OCRAitalic.ttf);
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	font-size: 16px;
+	font-family: Arial, Helvetica, sans-serif;
+	background: #fff;
+	color: #000;
+}
+
+a:link, a:visited {
+	color: #00f;
+}
+
+a:hover, a:active {
+	color: #f00;
+}
+
+img {
+    margin: 10px;
+	border: 5px solid #000;
+}
+
+h1, h2, h3, h4, p {
+	margin: 0;
+	padding: 0;
+	font-weight: normal;
+	clear: both;
+}
+
+h2 {
+	font-family: ehsm;
+	font-size: 22px;
+	border-bottom: 1px solid #000;
+	border-top: 1px solid #000;
+	margin: 10px 0 3px;
+	padding: 5px 0 4px;
+	color: #000;
+}
+
+h3 {
+	font-size: 18px;
+}
+
+p {
+	padding: 4px 0;
+    text-align: left;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+td {
+	padding: 1em;
+}
+
+div#header {
+	background: #fff;
+	height: 91px;
+	border-bottom: 2px solid #000;
+}
+
+div#header p, div#header h1 {
+	margin: 0;
+	padding: 0;
+}
+
+div#headerinside, div#footerinside {
+	width: 90%;
+	margin: 0 auto;
+}
+
+div#logo {
+	height: 38px;
+	width: 396px;
+	float: left;
+	margin-top: 10px;
+	display: block;
+	font-family: ehsm;
+	font-size: 50px;
+}
+
+ul#menu {
+	clear: both;
+	float: right;
+	list-style: none;
+	position: relative;
+	top: 0px;
+}
+
+ul#menu li {
+	float: left;
+	margin-left: 3px;
+	line-height: 1.4;
+}
+
+ul#menu li a {
+	color: #000;
+	text-shadow: 2px 2px 1px #ccc;
+	text-decoration: none;
+	font-weight: bold;
+	text-align: center;
+	width: 100px;
+	height: 17px;
+	background-color: #ccf;
+	padding: 5px 0;
+	display: block;
+}
+
+ul#menu li a:hover, ul#menu li a:active {
+	background-color: #ddf;
+}
+
+ul#menu li a.selected {
+	background-color: #fcc;
+}
+
+div#intro {
+	color: #000;
+	font-size: 16px;
+	margin-bottom: 20px;
+}
+
+div#intro p {
+	font-height: 250%;
+	font-style: normal;
+	color: #000;
+}
+
+div#message p{
+    line-height:5;
+    text-align: left;
+}
+
+div#title p{
+	color: #000;
+	font-family: ehsm;
+	font-size: 21px;
+	text-align: center;
+	text-shadow: 1px 2px 1px #ccc;
+	margin-bottom: 20px;
+}
+
+#container {
+	position: relative;
+	width: 90%;
+	margin: 20px auto 10px;
+}
+
+div.full {
+    line-height: 150%;
+	clear: both;
+	float: none;
+}
+
+#container h2.section a, #container h2.options a {
+	display: block;
+	text-decoration: none;
+	color: #000;
+}
+
+#container h2.section a:hover, #container h2.options a:hover {
+	color: #000;
+}
+
+#footer {
+	background: #fff;
+	border-top: 2px solid #666;
+	margin-top: 30px;
+	font-size: 11px;
+	color: #666;
+	text-align: center;
+}
+
+#footer a.copy {
+	display: block;
+	height: 43px;
+	width: 54px;
+	margin: 0 auto;
+}
