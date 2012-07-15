@@ -1,6 +1,6 @@
 class Ticket():
     TEMPLATE_FILE="data/ticket_template.png"
-    OUTPUT_DIR="printTickets/"
+    OUTPUT_DIR="TicketImage/"
     OUTPUT_FORMAT="png"
 
     NAME_POS=(20,320)
@@ -21,7 +21,7 @@ class Database():
     CODE_LENGTH=12
 
 class TicketPage():
-    OUTPUT_DIR="pageTicket/"
+    OUTPUT_DIR="Ticket/"
     TEMPLATE=u"""
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

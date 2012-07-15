@@ -58,10 +58,15 @@ def createPrintTicket(config, code, name, ticketName, ticketPrice):
             name =  name[:-1]
     drawCanvas.text(config.Ticket.NAME_POS, name, (0,0,0), font=font)
 
-
     ticketImagePath = "%s/%s.%s" % (config.Ticket.OUTPUT_DIR,
                                     code,
                                     config.Ticket.OUTPUT_FORMAT)
+
+    try:
+        os.mkdir(config.Ticket.OUTPUT_DIR)
+    except OSError:
+        pass
+
     try:
         canvas.save(ticketImagePath)
     except:
@@ -73,6 +78,10 @@ def createPrintTicket(config, code, name, ticketName, ticketPrice):
                                                   'ticket' : ticketImagePath,
                                                   'price' : ticketPrice,
                                                   'desc' : ticketName }
+    try:
+        os.mkdir(config.TicketPage.OUTPUT_DIR)
+    except OSError:
+        pass
     try:
         pisa.CreatePDF(StringIO.StringIO(htmlTemplate.encode('ascii', 'xmlcharrefreplace')),
                        open(pageTicketPath,'wb'))
