@@ -7,6 +7,9 @@ class Ticket():
     NAME_MAX_LENGTH=265
     BARCODE_POS=(5,380)
 
+    LOGO_POS = (150,305)
+    LOGO_SCALE = 0.20
+
     FONT="data/OCRAitalic.otf"
     FONT_SIZE=10
     TICKET_NAME_POS=(20, 345)

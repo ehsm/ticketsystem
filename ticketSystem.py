@@ -29,6 +29,7 @@ class CSVRow():
         self.email = row[2]
         self.ticketName = row[3]
         self.ticketPrice = row[4]
+        self.ticketCurrency = row[5]
 
 def mysqlConnect():
     conn = MySQLdb.connect(    host=config.Database.SERVER_URL,
@@ -37,7 +38,7 @@ def mysqlConnect():
                             db=config.Database.SERVER_DATABASE)
     return conn
 
-def createPrintTicket(d):
+def createPrintTicket(d, promo, **kwargs):
     canvas = Image.open(config.Ticket.TEMPLATE_FILE)
 
     #Generate Barcode
@@ -54,21 +55,31 @@ def createPrintTicket(d):
 
     #Render Ticket Name & Price
     ticketName = d.ticketName.decode('utf8')
-    ticketPrice = d.ticketPrice.replace("&euro;","€").decode('utf8')
+    ticketPrice = d.ticketPrice.decode('utf8')
+    ticketCurrency = d.ticketCurrency.replace("&euro;","€").decode('utf8')
     font = ImageFont.truetype(config.Ticket.FONT, config.Ticket.FONT_SIZE)
     drawCanvas.text(config.Ticket.TICKET_NAME_POS, ticketName, (0,0,0), font=font)
-    drawCanvas.text(config.Ticket.PRICE_POS, ticketPrice, (0,0,0), font=font)
+    drawCanvas.text(config.Ticket.PRICE_POS, ticketPrice + " " + ticketCurrency , (0,0,0), font=font)
 
     #Render Name
     font = ImageFont.truetype(config.Ticket.FONT,20)
     name = d.name.decode('utf8')
-    while True:
-        (w, h) = drawCanvas.textsize(name,font=font)
-        if w < config.Ticket.NAME_MAX_LENGTH:
-            break
-        else:
-            name =  name[:-1]
-    drawCanvas.text(config.Ticket.NAME_POS, name, (0,0,0), font=font)
+    if not promo:
+        printedName = name
+        while True:
+            (w, h) = drawCanvas.textsize(name,font=font)
+            if w < config.Ticket.NAME_MAX_LENGTH:
+                break
+            else:
+                printedName =  printedName[:-1]
+        drawCanvas.text(config.Ticket.NAME_POS, printedName, (0,0,0), font=font)
+    else:
+        #Render Logo
+        logo = Image.open(kwargs["logo"])
+        if config.Ticket.LOGO_SCALE != 1:
+            logo = logo.resize((int(logo.size[0] * config.Ticket.LOGO_SCALE),
+                                int(logo.size[1] * config.Ticket.LOGO_SCALE)))
+        canvas.paste(logo, config.Ticket.LOGO_POS)
 
     ticketImagePath = "%s/%s.%s" % (config.Ticket.OUTPUT_DIR,
                                     d.code,
@@ -152,17 +163,25 @@ def importCSV(args):
     for line in inCSV:
         ticketName = line[2]
         ticketPrice = line[3]
+        ticketCurrency = line[4]
         email = line[6]
         name = line[7]
         code = randHashString(12)
-        outCSV.writerow([code,name,email,ticketName,ticketPrice])
+        outCSV.writerow([code,name,email,ticketName,ticketPrice,ticketCurrency])
 
 def createTicketFromCSV(args):
     if not args.file:
         sys.exit(0)
     csv = readCSV(args.file)
     for row in csv:
-        createPrintTicket(CSVRow(row))
+        createPrintTicket(CSVRow(row),False)
+
+def createPromoTicketFromCSV(args):
+    if not args.file:
+        sys.exit(0)
+    csv = readCSV(args.file)
+    for row in csv:
+        createPrintTicket(CSVRow(row),True, logo=args.logo)
 
 def randHashString(length):
     randData = os.urandom(128)
@@ -251,6 +270,11 @@ def createParser():
     parserCreateCSV = subparsers.add_parser('createCSV')
     parserCreateCSV.add_argument('-i', dest='file', type=str, help='csv file')
     parserCreateCSV.set_defaults(func=createTicketFromCSV)
+    #Create promotional tickets from csv
+    parserPromoCreateCSV = subparsers.add_parser('createPromoCSV')
+    parserPromoCreateCSV.add_argument('-i', dest='file', type=str, help='csv file')
+    parserPromoCreateCSV.add_argument('-l', dest='logo', type=str, help='logo file')
+    parserPromoCreateCSV.set_defaults(func=createPromoTicketFromCSV)   
     # Import data form csv
     parserImportCSV = subparsers.add_parser('importCSV')
     parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file')
