@@ -152,8 +152,8 @@ def importCSV(args):
     for line in inCSV:
         ticketName = line[2]
         ticketPrice = line[3]
-        email = line[4]
-        name = line[5]
+        email = line[6]
+        name = line[7]
         code = randHashString(12)
         outCSV.writerow([code,name,email,ticketName,ticketPrice])
 
