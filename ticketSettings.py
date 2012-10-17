@@ -1,19 +1,23 @@
 class Ticket():
-    TEMPLATE_FILE="data/ticket_template.png"
+    TEMPLATE_FILE="data/ticketEntwurf.png"
     OUTPUT_DIR="TicketImage/"
     OUTPUT_FORMAT="png"
 
-    NAME_POS=(20,320)
-    NAME_MAX_LENGTH=265
-    BARCODE_POS=(5,380)
+    NAME_POS=(80,1300)
+    NAME_MAX_LENGTH=700
+    BARCODE_POS=(100,1600)
+    BARCODE_DPI=500
+    BARCODE_HEIGHT=8
+    BARCODE_TEXT_POS=(BARCODE_POS[0]+700,BARCODE_POS[1]-40)
+    BARCODE_TEXT_SIZE=36
 
-    LOGO_POS = (150,305)
-    LOGO_SCALE = 0.20
+    LOGO_POS = (600,1300)
+    LOGO_SCALE = 0.75
 
     FONT="data/OCRAitalic.otf"
-    FONT_SIZE=10
-    TICKET_NAME_POS=(20, 345)
-    PRICE_POS=(20, 365)
+    FONT_SIZE=40
+    TICKET_NAME_POS=(85, 1400)
+    PRICE_POS=(85, 1500)
 
 class Database():
     SERVER_URL="localhost"
@@ -114,7 +118,7 @@ class TicketPage():
 
     <div id="footer">
     <div id="footerinside">
-    <p>This is the life on Mars. <a href="http://www.twitter.com/ehsmeeting">Follow us on twitter</a></p>
+    <p>This is the life on Mars. Follow us on twitter: <a href="http://www.twitter.com/ehsmeeting">http://www.twitter.com/ehsmeeting</a></p>
     </div>
     </div>
 

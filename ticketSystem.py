@@ -44,14 +44,14 @@ def createPrintTicket(d, promo, **kwargs):
     #Generate Barcode
     code39 = barcode.get_barcode_class('code39')
     barcodeImage = code39(d.code, writer=barcode.writer.ImageWriter())
-    barcodeImage = barcodeImage.render({'dpi':140, 'text':d.code,'module_height':10})
+    barcodeImage = barcodeImage.render({'dpi':config.Ticket.BARCODE_DPI,'module_height':config.Ticket.BARCODE_HEIGHT})
 
     #Insert Barcode
     canvas.paste(barcodeImage, config.Ticket.BARCODE_POS)
     drawCanvas = ImageDraw.Draw(canvas)
     x,y = config.Ticket.BARCODE_POS
-    font = ImageFont.truetype(config.Ticket.FONT,10)
-    drawCanvas.text((x +180 ,y-10), d.code, (0,0,0),font=font)
+    font = ImageFont.truetype(config.Ticket.FONT,config.Ticket.BARCODE_TEXT_SIZE)
+    drawCanvas.text(config.Ticket.BARCODE_TEXT_POS, d.code, (0,0,0),font=font)
 
     #Render Ticket Name & Price
     ticketName = d.ticketName.decode('utf8')
