@@ -4,16 +4,17 @@
 # Copyright (C) 2012 Stefan Laufmann <mail@stefanlaufmann.de>
 # Licensed under GPL v3 or later
 
-import MySQLdb        # communicate with mysql database
 import sys            # access commandline parameters, execute commands
 import argparse        # parse commandline arguments and print help texts
-import os            # access urandom for "good" random numbers
+import os            # access urandom for "good" random numbers:
 import hashlib        # provides hash functions
+import re
 import logging
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from smtplib import SMTP
+from time import sleep
 import StringIO
 import ho.pisa as pisa
 import csv
@@ -21,6 +22,7 @@ from PIL import Image, ImageDraw, ImageFont
 import barcode
 
 import ticketSettings as config
+import ticketSettingsEmail as emailconfig
 
 class CSVRow():
     def __init__(self, row):
@@ -30,13 +32,6 @@ class CSVRow():
         self.ticketName = row[3]
         self.ticketPrice = row[4]
         self.ticketCurrency = row[5]
-
-def mysqlConnect():
-    conn = MySQLdb.connect(    host=config.Database.SERVER_URL,
-                            user=config.Database.SERVER_USER,
-                            passwd=config.Database.SERVER_PASSWORD,
-                            db=config.Database.SERVER_DATABASE)
-    return conn
 
 def createPrintTicket(d, promo, **kwargs):
     canvas = Image.open(config.Ticket.TEMPLATE_FILE)
@@ -62,7 +57,7 @@ def createPrintTicket(d, promo, **kwargs):
     drawCanvas.text(config.Ticket.PRICE_POS, ticketPrice + " " + ticketCurrency , (0,0,0), font=font)
 
     #Render Name
-    font = ImageFont.truetype(config.Ticket.FONT,20)
+    font = ImageFont.truetype(config.Ticket.FONT,config.Ticket.FONT_SIZE)
     name = d.name.decode('utf8')
     if not promo:
         printedName = name
@@ -105,20 +100,38 @@ def createPrintTicket(d, promo, **kwargs):
         os.mkdir(config.TicketPage.OUTPUT_DIR)
     except OSError:
         pass
+    if os.path.exists(pageTicketPath):
+        print "File already exist %s" % (pageTicketPath)
+        try:
+            os.remove(pageTicketPath)
+        except Exception as e:
+            print e
+            exit(1)
     try:
+        print "Create ticket %s for %s" % (d.code, name)
         pisa.CreatePDF(StringIO.StringIO(htmlTemplate.encode('ascii', 'xmlcharrefreplace')),
                        open(pageTicketPath,'wb'))
     except:
-       print "Cannot write PDF ticket to %s" % (pageTicketPath,)
+        print "Cannot write PDF ticket to %s" % (pageTicketPath,)
 
 def sendMails(args):
     csv = readCSV(args.file)
+    try:
+        server = SMTP(emailconfig.Account.HOST,emailconfig.Account.PORT,emailconfig.Account.LOCALHOST)
+    except Exception as e:
+        print e
+        exit(1)
+    #try:
+    #    server.login(emailconfig.Account.USER, emailconfig.Account.PASS)
+    #except Exception as e:
+    #    print e
+    #    exit(1)
     for row in csv:
         d = CSVRow(row)
         msg = MIMEMultipart()
         msg['Subject'] = 'Your EHSM Ticket'
-        msg['From'] = 'orga@ehsm.eu'
-        msg['Reply-to'] = 'tickets@ehsm.eu'
+        msg['From'] = 'ehsm@streibelt.net'
+        msg['Reply-to'] = 'orga@ehsm.eu'
         msg['To'] = d.email
 
         msg.preamble = 'This is a multi-part message in MIME format.\n'
@@ -130,21 +143,40 @@ def sendMails(args):
         try:
             ticket = open(ticketPath,'rb').read()
         except:
-            print "Cannot read ticket file %s" % (ticketPath,)
+            print "Cannot read ticket file %s continue" % (ticketPath,)
+            continue
         part = MIMEApplication(ticket)
         part.add_header('Content-Disposition',
                         'attachment',
                         filename="%s.pdf" % (d.code,))
         msg.attach(part)
 
-        print msg.as_string()
+        print "send mail to %s - attachment: %s.pdf" % (d.email,d.code)
+        try:
+            server.sendmail(emailconfig.Account.SENDER,d.email,msg.as_string())
+        except Exception as e:
+            print e
+            exit(1) #fail and fix the errror
+        sleep(1)
+
+    server.quit()
 
 """
 Printer class to print piso errors to the console.
 """
 class LogPrinter(logging.Handler):
+    def __init__(self):
+        try:
+            self.file = open("log","wa")
+        except Exception as e:
+            print e
+            exit(1)
+
     def emit(self, record):
-        print record
+        self.file.write(record + "\n")
+
+    def __del__(self):
+        self.file.close()
 
 def readCSV(filename):
     return csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"')
@@ -155,7 +187,7 @@ def writeCSV(filename, truncate=True):
     else:
         return csv.writer(open(filename, 'ab'), delimiter=',', quotechar='"')
 
-def importCSV(args):
+def importCSVWireTransfer(args):
     if not args.input or not args.output:
         sys.exit(1)
     inCSV = readCSV(args.input)
@@ -166,6 +198,20 @@ def importCSV(args):
         ticketCurrency = line[4]
         email = line[6]
         name = line[7]
+        code = randHashString(12)
+        outCSV.writerow([code,name,email,ticketName,ticketPrice,ticketCurrency])
+
+def importCSVGoogle(args):
+    if not args.input or not args.output:
+        sys.exit(1)
+    inCSV = readCSV(args.input)
+    outCSV = writeCSV(args.output, args.truncate)
+    for line in inCSV:
+        ticketName = line[28]
+        ticketPrice = line[4]
+        ticketCurrency = line[3]
+        email = line[16]
+        name = line[17]
         code = randHashString(12)
         outCSV.writerow([code,name,email,ticketName,ticketPrice,ticketCurrency])
 
@@ -187,77 +233,42 @@ def randHashString(length):
     randData = os.urandom(128)
     randString = hashlib.md5(randData).hexdigest()[:length]
     return randString
-    
-def commandInstall(args):
-    dbRootPass = readfromcmdline(passwd)
-    mysqlConn = MySQLdb.connect(    host=config.Database.SERVER_URL,
-                                    user="root",
-                                    passwd=dbRootPass)
-    mysqlConn.execute('CREATE DATABASE %s ;', config.Database.SERVER_DATABASE)
-    mysqlConn.execute('CREATE TABLE ticets ;')
-    mysqlConn.execute('CREATE USER  %s ;', config.Database.SERVER_USER)
-    mysqlConn.execute('GRANT PRIVILEGES TO %s ;', config.Database.SERVER_USER)
 
+def checkTicket(args):
+    print "enter ticket code"
+    code = sys.stdin.readline().lower().strip("\n\t ")
+    if re.match("^[a-f0-9]{12}.?$",code) == None:
+        print "wrong format"
+        exit(1)
+    if len(code) == 13: #remove parity
+        code = code[:-1]
 
-def commandCreate(args):
-    nameParts = args.name.split('=')
-    name = nameParts[len(nameParts)-1]
-    if (len(name) > config.Database.NAME_LENGTH):
-        print "Please choose a name that fits into %s characters" % (config.Database.NAME_LENGTH,)
-        quit()
-    else:
-        randString = randHashString(config.Database.CODE_LENGTH)
-        while checkCode(randString):
-            randString = randHashString(config.Database.CODE_LENGTH)
-        fname = "tmp/"+randString+".png"
-        dbConn = mysqlConnect()
-        dbCursor = dbConn.cursor()
-        dbCursor.execute("INSERT INTO tickets SET name=%s, code=%s, used=0;", [name, randString])
-        userCode = qrtools.QR(data=randString)
-        userCode.encode(filename=fname)
-        createPrintTicket(userCode, name)
-        dbCursor.close()
-        dbConn.commit()
-        dbConn.close()
+    #check if ticket is valid
+    tickets = readCSV(args.input)
+    invalidated_tickets = readCSV(args.output)
+    ticket_exists = False
+    saved_row = []
+    for row in tickets:
+        if row[0] == code:
+            ticket_exists = True
+            saved_row = row
+    if not ticket_exists:
+        print "Invalid Ticket"
+        exit(0)
 
-def commandCheck(args):
-    if not args.code:
-        code = qrtools.QR()
-        code.decode_webcam()
-        data = code.data
-    else:
-        data = args.code
-    dbData = checkCode(data, config)
-    name = dbData[0]
-    used = dbData[1]
-    if not dbData:
-        print "Sorry, there is no ticket registered with this code."
-    elif used:
-        print "Sorry, the ticket registered to " + name + " was already used."
-    else:
-        markAsUsed(data, config)
-        print "Ticket is registered on " + name
-        print "Ticket was marked as used."
+    #check if already invalidated
+    invalidated = False
+    for row in invalidated_tickets:
+        if row[0] == code:
+            invalidated = True
+    if invalidated:
+        print "Ticket already invalidated"
+        exit(1)
 
-def markAsUsed(code):
-    dbConn = mysqlConnect()
-    dbCursor = dbConn.cursor()
-    dbCursor.execute("UPDATE tickets SET used=1 WHERE code=%s;", code)
-    dbCursor.close()
-    dbConn.commit()
-    dbConn.close()
-
-def checkCode(code):
-    dbConn = mysqlConnect()
-    dbCursor = dbConn.cursor()
-    dbCursor.execute("SELECT name, used FROM tickets WHERE code=%s;", [code])
-    rows = dbCursor.fetchall()
-    dbCursor.close()
-    dbConn.close()
-    if (len(rows) < 1):
-        return None
-    else:
-        return rows[0]
+    #write to file of invalidated tickets
+    writer = writeCSV(args.output, False)
+    writer.writerow(saved_row)
+    print "Successfully invalidated ticket"
 
 def createParser():
     parser = argparse.ArgumentParser()
@@ -274,25 +285,24 @@ def createParser():
     parserPromoCreateCSV = subparsers.add_parser('createPromoCSV')
     parserPromoCreateCSV.add_argument('-i', dest='file', type=str, help='csv file')
     parserPromoCreateCSV.add_argument('-l', dest='logo', type=str, help='logo file')
-    parserPromoCreateCSV.set_defaults(func=createPromoTicketFromCSV)   
+    parserPromoCreateCSV.set_defaults(func=createPromoTicketFromCSV)
     # Import data form csv
-    parserImportCSV = subparsers.add_parser('importCSV')
+    parserImportCSV = subparsers.add_parser('importCSVWireTransfer')
     parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file')
     parserImportCSV.add_argument('-o', type=str, dest='output', help='output csv file')
     parserImportCSV.add_argument('--truncate', action='store_true', default=False, help='truncate file instead of appending')
-    parserImportCSV.set_defaults(func=importCSV)
-    # create a parser for the create subcommand and add arguments and handler function
-    parserCreate = subparsers.add_parser('create')
-    parserCreate.add_argument('name', type=str, help="ticket owners name")
-    parserCreate.set_defaults(func=commandCreate)
-    # create a parser for the check subcommand and add handler function 
-    parserCheck    = subparsers.add_parser('check')
-    parserCheck.add_argument("--code", help="manually give the ticket code to check for")
-    parserCheck.set_defaults(func=commandCheck)
-    # create a parser for an install routine
-    parserInstall = subparsers.add_parser('install')
-    parserInstall.add_argument('config', help="specifiy the config file to use for setting up the database")
-    parserInstall.set_defaults(func=commandInstall)
+    parserImportCSV.set_defaults(func=importCSVWireTransfer)
+    
+    parserImportCSV = subparsers.add_parser('importCSVGoogle')
+    parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file')
+    parserImportCSV.add_argument('-o', type=str, dest='output', help='output csv file')
+    parserImportCSV.set_defaults(func=importCSVGoogle)
+
+    parserImportCSV = subparsers.add_parser('checkTicket')
+    parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file of valid tickets')
+    parserImportCSV.add_argument('-o', type=str, dest='output', help='csv file of checked tickets')
+    parserImportCSV.set_defaults(func=checkTicket)
+
     return parser
 
 if __name__ == "__main__": 

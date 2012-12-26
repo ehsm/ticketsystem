@@ -74,7 +74,9 @@ class TicketPage():
     <table>
     <tr>
     <td>
+    <div style="border:1px solid grey" >
     <img src="%(ticket)s" alt="%(code)s" style="border: 2px solid #000;" />
+    </div>
     </td>
     <td>
     <div id="container">
@@ -83,7 +85,7 @@ class TicketPage():
     Hello %(name)s,
     </p>
     <p>
-    the Exceptionally Hard &amp; Soft Meeting in approaching fast. So we are happy to send you your ticket.
+    the Exceptionally Hard &amp; Soft Meeting is approaching fast. So we are happy to send you your ticket.
     </p>
     <p>
     Please print your ticket and present it at the cash desk to retrieve your wristband.
@@ -101,27 +103,75 @@ class TicketPage():
     </table>
 
 
-    <div id="container">
     <div id="intro">
-
+    <h2>Dates</h2>
+    <p>
+    <strong>Cash Desk:</strong> open every conference day starting at 9am.
+    <p>
+    <strong>Talks:</strong> every conference day from 10am to 8pm.
+    </p>
+    <p>
+    <strong>Lunch Break:</strong> between 1 pm and 2 pm.
+    </p>
+    <p>
+    <strong>Workshops:</strong> there will be various workshops during the conference. Please refer to the posted schedule for up to date information.
+    </p>
+    <p>
+    You find the up to date schedule on the conference homepage <a href="http://www.ehsm.eu">www.ehsm.eu</a>.
+    </p>
+      <pdf:nextpage />
+    <h2>Travel Information</h2>
+    <h3>by Train</h3>
+        <p>
+        S-Bahn: Leave the S5,S7, or S75 at Tiergarten station and follow Stra&szlig;e des 17. Juni in westbound direction.
+        </p>
+        <p>
+        U-Bahn: Leave the U2 at Ernst-Reuter-Platz station and follow the Stra&szlig;e des 17. Juni in eastbound direction.
+        </p>
+        <p>
+        For more information on public transportation in Berlin visit <a href="http://www.bvg.de">www.bvg.de</a>
+        </p>
+    <h3>by Car</h3>
+    <p>
+    Leave the A100 at exit Kaiserdamm(7), turn left, follow Kaiserdamm, follow Bismarkstra&szlig;e, at Ernst-Reuter-Platz leave at the second exit. There is plenty of parking space in front of the Technische Universit&auml;t Berlin.
+    </p>
+    <h3>by Plane</h3>
+        <p>
+        Tegel: X9 to Zoologischer Garten, exit at Ernst-Reuter-Platz
+        </p>
+        <p>
+        Sch&ouml;nefeld: RE7 to Dessau Hauptbahnhof, exit at Friedrichstra&szlig;e ->
+        take S5 to Spandau or S7 to Potsdam or S75 to Westkreuz, exit at Tiergarten, then see "by Train"
+        </p>
+    <hline />
     <h2>EHSM venue</h2>
     <p>
-    TU Berlin, H&ouml;rsaalgeb&auml;ude Elektrotechnik<br />
+    TU Berlin, Math Building(MA)<br />
     Lecture room HE101<br />
     Stra&szlig;e des 17. Juni 136<br />
     10623 Berlin, Germany<br />
     U Bahn: Ernst-Reuter-Platz
     </p>
+    <table>
+    <tr>
+    <td style="padding-top:20px;">
+    <h2> Gold Supporters</h2>
+    <p>
+        <img src="data/guug.png" height="100"></img>
+        <img src="data/space.png" width="40" height="100"></img>
+        <img src="data/github.png" height="100"></img>
+   </p>
+   </td>
+   <td>
+   <h2>Technology Partner</h2>
+   <p>
+        <img src="data/streibelt.png" height="100"></img>
+   </p>
+   </td>
+   </tr>
+   </table>
+   <img src="data/map.png" />
     </div>
-
-    </div>
-
-    <div id="footer">
-    <div id="footerinside">
-    <p>This is the life on Mars. Follow us on twitter: <a href="http://www.twitter.com/ehsmeeting">http://www.twitter.com/ehsmeeting</a></p>
-    </div>
-    </div>
-
     </body>
     </html>
 	"""
