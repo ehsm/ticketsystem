@@ -20,6 +20,7 @@ import ho.pisa as pisa
 import csv
 from PIL import Image, ImageDraw, ImageFont
 import barcode
+import popen2
 
 import ticketSettings as config
 import ticketSettingsEmail as emailconfig
@@ -32,6 +33,16 @@ class CSVRow():
         self.ticketName = row[3]
         self.ticketPrice = row[4]
         self.ticketCurrency = row[5]
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return "name: %s, email: %s, ticket: %s for %s %s" % (self.name,
+                                                              self.email,
+                                                              self.ticketName,
+                                                              self.ticketPrice,
+                                                              self.ticketCurrency)
 
 def createPrintTicket(d, promo, **kwargs):
     canvas = Image.open(config.Ticket.TEMPLATE_FILE)
@@ -187,6 +198,10 @@ def writeCSV(filename, truncate=True):
     else:
         return csv.writer(open(filename, 'ab'), delimiter=',', quotechar='"')
 
+def writeCSVfile(file):
+    return csv.writer(file, delimiter=',', quotechar='"')
+
+
 def importCSVWireTransfer(args):
     if not args.input or not args.output:
         sys.exit(1)
@@ -234,9 +249,75 @@ def randHashString(length):
     randString = hashlib.md5(randData).hexdigest()[:length]
     return randString
 
-def checkTicket(args):
-    print "enter ticket code"
-    code = sys.stdin.readline().lower().strip("\n\t ")
+def selection(kargs):
+    while True:
+        for k in kargs:
+            print "%s -> %s" % (k,kargs[k])
+        print "0  -> free form"
+        sel = sys.stdin.readline().lower().strip("\n\t ")
+
+        try:
+            if int(sel) in kargs:
+                return kargs[int(sel)]
+            else:
+                print "enter ticket name"
+                ticketname = sys.stdin.readline().lower().strip("\n\t ")
+                print "enter amount in euro"
+                amount = ""
+                while True:
+                    amount = sys.stdin.readline().lower().strip("\n\t ")
+                    if re.match("^[0-9]+$",amount) != None:
+                        break
+                    else:
+                        print "not a number"
+                return (ticketname,amount)
+        except Exception:
+            continue
+
+def newTicket(args):
+    row = []
+    row.append(randHashString(12))
+    print "enter name"
+    name = ""
+    while True:
+        name = sys.stdin.readline().lower().strip("\n\t ")
+        if len(name) > 0:
+           break
+        print "please enter name"
+    row.append(name)
+    print "enter mail address"
+    email = ""
+    while True:
+        email = sys.stdin.readline().lower().strip("\n\t ")
+        if re.match("[^@]+@[^@]+\.[^@]+",email) != None or len(email) == 0:
+            break
+        else:
+            print "wrong format"
+    row.append(email)
+    print "enter ticket"
+    ticketname,amount = selection({1:("3 day pass","100"),
+               2:("3 day pass student", "50"),
+               3:("day ticket", "35"),
+               4:("volunteer ticket","0")})
+    row.append(ticketname)
+    row.append(amount)
+    row.append("&euro;")
+
+    print CSVRow(row)
+    print "okay (y/n)"
+    answer = sys.stdin.readline().lower().strip("\n\t ")
+    if answer == "y":
+        f = open(args.new,"ab")
+        CSVWriter = writeCSVfile(f)
+        CSVWriter.writerow(row)
+        f.close()
+#        createPrintTicket(CSVRow(row),False)
+#        popen2.popen4("evince Ticket/%s.pdf" % row[0])
+        checkTicket(row[0],args)
+    else:
+        print "no Ticket Created"
+
+def checkTicket(code,args):
     if re.match("^[a-f0-9]{12}.?$",code) == None:
         print "wrong format"
         exit(1)
@@ -252,9 +333,16 @@ def checkTicket(args):
         if row[0] == code:
             ticket_exists = True
             saved_row = row
+
+    tickets = readCSV(args.new)
+    for row in tickets:
+        if row[0] == code:
+            ticket_exists = True
+            saved_row = row
     if not ticket_exists:
         print "Invalid Ticket"
-        exit(0)
+        return
+
 
     #check if already invalidated
     invalidated = False
@@ -262,13 +350,40 @@ def checkTicket(args):
         if row[0] == code:
             invalidated = True
     if invalidated:
-        print "Ticket already invalidated"
-        exit(1)
+        print "Ticket ALREADY INVALIDATED"
+        return
+
+    r = CSVRow(saved_row)
+    print(r)
+    if r.ticketName == "Student Ticket":
+        print "This is a STUDENT TICKET, please check id (y/n)"
+        answer = sys.stdin.readline().lower().strip("\n\t ")
+        if answer == "y":
+            pass
+        else:
+            print "Ticket NOT INVALIDATED"
+            return
 
     #write to file of invalidated tickets
     writer = writeCSV(args.output, False)
     writer.writerow(saved_row)
-    print "Successfully invalidated ticket"
+    print "SUCCESSFULLY INVALIDATED ticket"
+
+def cashdesk(args):
+    while True:
+        print ""
+        print "select option:"
+        print "1 -> create new ticket"
+        print "0 -> exit"
+        print "or enter Ticket code"
+        code = sys.stdin.readline().lower().strip("\n\t ")
+        if code == "1":
+            newTicket(args)
+        elif code == "0":
+            break
+        else:
+            checkTicket(code, args)
+
 
 def createParser():
     parser = argparse.ArgumentParser()
@@ -292,16 +407,23 @@ def createParser():
     parserImportCSV.add_argument('-o', type=str, dest='output', help='output csv file')
     parserImportCSV.add_argument('--truncate', action='store_true', default=False, help='truncate file instead of appending')
     parserImportCSV.set_defaults(func=importCSVWireTransfer)
-    
-    parserImportCSV = subparsers.add_parser('importCSVGoogle')
-    parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file')
-    parserImportCSV.add_argument('-o', type=str, dest='output', help='output csv file')
-    parserImportCSV.set_defaults(func=importCSVGoogle)
 
-    parserImportCSV = subparsers.add_parser('checkTicket')
-    parserImportCSV.add_argument('-i', type=str, dest='input', help='csv file of valid tickets')
-    parserImportCSV.add_argument('-o', type=str, dest='output', help='csv file of checked tickets')
-    parserImportCSV.set_defaults(func=checkTicket)
+    parserImportCSVGoogle = subparsers.add_parser('importCSVGoogle')
+    parserImportCSVGoogle.add_argument('-i', type=str, dest='input', help='csv file')
+    parserImportCSVGoogle.add_argument('-o', type=str, dest='output', help='output csv file')
+    parserImportCSVGoogle.set_defaults(func=importCSVGoogle)
+
+    parserCheckTicket = subparsers.add_parser('checkTicket')
+    parserCheckTicket.add_argument('-i', type=str, dest='input', help='csv file of valid tickets')
+    parserCheckTicket.add_argument('-o', type=str, dest='output', help='csv file of checked tickets')
+    parserCheckTicket.add_argument('-n', type=str, dest='new', help='csv file with new tickets')
+    parserCheckTicket.set_defaults(func=checkTicket)
+
+    parserCashdesk = subparsers.add_parser('cashdesk')
+    parserCashdesk.add_argument('-i', type=str, dest='input', help='csv file of valid tickets')
+    parserCashdesk.add_argument('-o', type=str, dest='output', help='csv file of checked tickets')
+    parserCashdesk.add_argument('-n', type=str, dest='new', help='csv file with new tickets')
+    parserCashdesk.set_defaults(func=cashdesk)
 
     return parser
 
